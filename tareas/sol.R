@@ -42,7 +42,7 @@ x_0 <- sample(0:13, 500, replace = T)
 datos_prueba <- simula_muestra(f, x_0)
 # usamos x fija para entrenamiento (puedes simular también)
 x <- c(1,7,10,0,0,5,9,13,2,4,17,18,1,2)
-for (i in 1:10) {
+for (i in 1:40) {
   datos_entrena <- simula_muestra(f, x)
   modelos <- ajusta_modelos(datos_entrena)
   error_entrena <- error_f(datos_entrena)
