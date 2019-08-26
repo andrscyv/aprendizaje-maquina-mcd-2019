@@ -49,11 +49,22 @@ las variables *estatura*, *abdomen*, *muñeca*, *rodilla* y *grasacorp*.  Por ej
 
 ```{r}
 quantile(dat_ent$muñeca)
+print("estatura")
+summary(dat_ent$estatura)
+print("abdomen")
+summary(dat_ent$abdomen)
+print("muñeca")
+summary(dat_ent$muñeca)
+print("rodilla")
+summary(dat_ent$rodilla)
+print("grasacorp")
+summary(dat_ent$grasacorp)
+boxplot(dat_ent[c("estatura","abdomen","muñeca","rodilla")])
 ```
 
 **Pregunta**: ¿Ves algunos datos problemáticos o posiblemente erróneos? Si los ves,
 ¿qué piensas que podría ser una buena estrategia para tratarlos?
-
+En estatura hay un dato con valor muy alejado al rango de la variable, se podria eliminar esa observación
 ### Parte 3: Ajusta un modelo líneal usando descenso en gradiente
 
 Puedes usar estas funciones, o escribir el código tu mismo:
@@ -67,7 +78,7 @@ error_calc <- function(x, y){
     y_hat <- as.matrix(cbind(1,x)) %*% beta
     # residual
     e <- y - y_hat
-    error <- 0.5*mean(e^2)
+    error <- 0.5*mean(e^2) ##PORQUE 0.5??
     error
   }
   error_fun
@@ -83,7 +94,7 @@ grad_calc <- function(x, y){
       # para este cálculo, ver notas
       f_beta <- as.matrix(cbind(1, x)) %*% beta
       e <- y - f_beta
-      gradiente <- - apply(t(cbind(1,x)) %*% e, 1, mean) 
+      gradiente <- - apply(t(cbind(1,x)) %*% e, 1, mean) #El 1/N REALMENTE NO ES PARTE DE LA DERIVDA ??
       names(gradiente)[1] <- 'Intercept'
       gradiente
     }
@@ -113,20 +124,21 @@ y_pr <- dat_pr$grasacorp
 **Pregunta**: Rellena el siguiente código:
 
 ```{r}
-gradiente <- grad_calc( , )
-error <- error_calc( , )
+gradiente <- grad_calc(x_ent , y_ent )
+error <- error_calc(x_ent , y_ent )
 ```
 
 
 **Pregunta**: ¿cuál es un valor de número de iteraciones (n) y tamaño 
 de paso (eta) para este problema? ¿Qué pasa si haces eta demasiado grande?
+Si eta es demasiado grande, el metodo divergerá, parece que con 45 iteraciones el método converge
 
 Ahora **selecciona un valor del tamaño de paso** y corre descenso
 en gradiente:
 
 ```{r}
-n <- ### rellena aquí un valor apropiado
-eta <- ## rellena aquí un valor apropiado
+n <- 45### rellena aquí un valor apropiado
+eta <- 0.005## rellena aquí un valor apropiado
 salida <- descenso(n, c(0,0,0,0,0), eta, gradiente)
 salida
 ```
@@ -135,6 +147,8 @@ Grafica el error para cada iteración para checar convergencia:
 
 ```{r}
 ## Aquí tu código, puedes usar la función "error" que definiste arriba
+error_iter <- apply(salida,1,error)
+plot(error_iter,type='l')
 ```
 
 
@@ -160,7 +174,7 @@ Eevaluamos con la muestra de prueba:
 calcular_preds <- function(x, beta){
   as.matrix(cbind(1, x)) %*% beta
 }
-beta <- ## pon aquí los valores que encontraste
+beta <- salida[n,]## pon aquí los valores que encontraste
 preds <- calcular_preds(x_pr, beta)
 # grafica predicciones vs observados
 qplot(x = preds, y = y_pr) + geom_abline(intercept = 0, slope = 1)
@@ -181,4 +195,10 @@ mean(abs(y_pr - preds))
 
 **Pregunta**: ¿Cómo se compara este error con la variación que existe en la 
 variable grasa corporal?
+Es mayor la varianza contra el error de prueba
+```{r}
+sqrt(var(bodyfat$grasacorp))
+
+```
+
 
