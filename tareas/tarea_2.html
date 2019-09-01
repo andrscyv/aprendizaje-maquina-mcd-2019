@@ -379,12 +379,12 @@ $(document).ready(function () {
 
 
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ── Attaching packages ───────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 3.2.0     ✔ purrr   0.3.2
 ## ✔ tibble  2.1.3     ✔ dplyr   0.8.3
 ## ✔ tidyr   0.8.3     ✔ stringr 1.4.0
 ## ✔ readr   1.3.1     ✔ forcats 0.4.0</code></pre>
-<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+<pre><code>## ── Conflicts ──────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 <p>En el siguiente problema queremos predecir el porcentaje de grasa corporal (que es relativamente costoso de medir) en términos de distintas medidas del cuerpo (estatura, peso, circunferencia de abdomen, etc.) Usaremos <a href="http://jse.amstat.org/v4n1/datasets.johnson.html">estos datos</a>. Las medidas corporales están estandarizadas.</p>
@@ -590,7 +590,9 @@ sqrt(error_prueba)</code></pre>
 <p>También podemos evaluar otro tipo de errores que pueden interpretarse más fácilmente, por ejemplo, la media del las diferencias en valores absolutos:</p>
 <pre class="r"><code>mean(abs(y_pr - preds))</code></pre>
 <pre><code>## [1] 3.854481</code></pre>
-<p><strong>Pregunta</strong>: ¿Cómo se compara este error con la variación que existe en la variable grasa corporal?</p>
+<p><strong>Pregunta</strong>: ¿Cómo se compara este error con la variación que existe en la variable grasa corporal? Es mayor la varianza contra el error de prueba</p>
+<pre class="r"><code>sqrt(var(bodyfat$grasacorp))</code></pre>
+<pre><code>## [1] 8.36874</code></pre>
 </div>
 </div>
 
