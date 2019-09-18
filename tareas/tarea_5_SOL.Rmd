@@ -1,0 +1,159 @@
+---
+title: "Tarea: clasificación multinomial en keras"
+output: html_notebook
+---
+
+## Preparación de datos
+
+```{r, message = FALSE}
+library(tidyverse)
+library(keras)
+use_session_with_seed(421) # ayuda a reproducibilidad, pero más lento
+set.seed(112)
+zip_train <- read_csv("../datos/zip-train.csv") 
+zip_test <- read_csv("../datos/zip-test.csv")
+zip_train_x <- zip_train %>% select(-X1) %>% as.matrix
+zip_test_x <- zip_test %>% select(-V1) %>% as.matrix
+zip_train_y <- zip_train$X1
+zip_test_y <- zip_test$V1
+```
+
+```{r}
+# Convertir a categóricas (hace one-hot encoding)
+num_clases <- 10
+y_train <- to_categorical(zip_train_y, num_clases)
+y_test <- to_categorical(zip_test_y, num_clases)
+```
+
+## Definir modelo
+
+Definimos regresión logística multinomial
+```{r}
+model <- keras_model_sequential() %>%
+  layer_dense(units = num_clases, activation = "softmax")
+```
+
+Compilamos y corremos:
+
+```{r}
+model %>% compile(
+  loss = loss_categorical_crossentropy,
+  optimizer = optimizer_sgd(lr = 0.2),
+  metrics = c('accuracy') # ver tasa de correctos
+)
+# Entrenar con descenso en gradiente
+history <- model %>% fit(
+  zip_train_x, y_train,
+  batch_size = nrow(zip_train_x),
+  validation_split = 0.5,
+  verbose = 0,
+  epochs = 500)
+
+```
+
+Puedes revisar la convergencia graficando o examinando *history*:
+
+```{r}
+plot(history)
+```
+
+
+Evalúa con la muestra de prueba (recuerda que entropía cruzada
+es lo mismo que devianza promedio, pero sin el factor de 2):
+
+```{r}
+scores <- model %>% evaluate(
+  zip_test_x, y_test, verbose = 0
+)
+
+# Output metrics
+cat('Prueba - pérdida (entropía cruzada):', scores[[1]], '\n')
+cat('Prueba - tasa de correctos :', scores[[2]], '\n')
+
+```
+
+## Coeficientes del modelo
+
+
+```{r}
+coeficientes <- get_weights(model)[[1]]
+ordenadas <- get_weights(model)[[2]]
+```
+
+
+
+**Pregunta 1** ¿De qué tamaño es la matriz de coeficientes? Explica la dimensión
+en términos de los datos (entradas y variable a predecir)
+La matriz de coeficientes tiene dimensiones 256 X 10. Podemos ver que hay 10 clases distintas, es decir,
+tenemos los estimadores de probabilidad de 9 clases distintas. Hay 256 variables de entrada, y por cada clase se tiene un coeficiente por cada variable de entrada. Parece ser que esta libreria esta sobre parametrizando y ajusta 10 modelos a pesar de que uno de ellos queda determinado por los otros 9. Esta hipotesis la confirma el hecho de que en la matriz de coeficientes, la ultima columna se compone por valores cercanos a 0. Lo que seria equivalente a que el modelo de la decima clase es 1/z
+
+**Pregunta 2** Grafica los coeficientes asociados al dígito 1. ¿Cuáles son los
+dígitos que tienen valores positivos grandes (aumentan la probabilidad de
+que el dígito sea 1)?
+
+Por ejemplo, para graficar un dígito, hacemos:
+
+```{r}
+graficar_vector <- function(x){
+    mat <- matrix(as.numeric(x), nrow = 16)[1:16, 16:1] 
+    image(mat)
+}
+graficar_vector(zip_train_x[1, ])
+```
+
+Aplica la misma función para examinar los coeficientes asociados a la
+clase del dígito 1, por ejemplo:
+
+```{r}
+graficar_vector(t(coeficientes[,1]))
+```
+
+## Predicciones
+
+Puedes producir predicciones probabilísticas con Keras de la siguiente forma. 
+Para los casos 1 y 30 de prueba, por ejemplo:
+
+```{r}
+probas <- predict(model, x = zip_test_x[c(1,30), ,drop = FALSE]) %>% t
+probas %>% round(3)
+```
+
+*Pregunta 3* reconstruye estas probabilidades usando la matriz de coeficientes
+y ordenadas (interceptos) en el paso anterior. Tip: multiplica coeficientes por los datos de entrada, suma las ordenadas y aplica la función softmax (aplica exponencial y normaliza):
+
+```{r}
+prediction <- function(coef, ordenadas, x){
+  vec_ordenadas = matrix(as.numeric(ordenadas), nrow = 1)
+  aux <- exp(x %*% coef + vec_ordenadas)
+  t(round(aux/(sum(aux)),3))
+}
+prediction(coeficientes, ordenadas, zip_test_x[1,])
+prediction(coeficientes, ordenadas, zip_test_x[30,])
+```
+
+
+## ¿Qué pasa si corremos más iteraciones?
+
+
+Ahora corremos más iteraciones:
+
+
+```{r}
+model %>% fit(
+  zip_train_x, y_train,
+  batch_size = nrow(zip_train_x),
+  epochs = 6000,
+  validation_split = 0.5,
+  verbose = 0
+)
+scores <- model %>% evaluate(
+  zip_test_x, y_test
+)
+
+# Output metrics
+cat('Prueba - pérdida (entropía cruzada):', scores[[1]], '\n')
+cat('Prueba - tasa de correctos :', scores[[2]], '\n')
+```
+
+**Pregunta 4**: ¿Qué modelo ajustado es mejor? Explica por qué.
+Es mejor el primer modelo ajustado porque generaliza el aprendizaje, el segundo modelo se sobre ajusto y aprendio el ruido mas que la señal
