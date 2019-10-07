@@ -122,19 +122,49 @@ la curva precision-recall.
 
 ```{r}
 library(ROCR)
-# preds_reg_baja <- predict(cv_mod, # rellena parámetros )
-# tu código aquí:                          
+preds_reg_baja <- predict(cv_mod, newx = x_pr, type = 'response', s=exp(-12) )
+prob_of_class <- function(class, y_predicted){
+  if( class == 1 )
+      y_predicted
+  else
+    1-y_predicted
+}
+devianza <- function( y, y_predicted ){
+  acum <- 0
+  for (i in 1:length(y)) {
+      acum = acum + log(prob_of_class(y[i],y_predicted[i]))
+  }
+  res = -2/length(y)*acum
+  res
+}
+devianza(y_pr,preds_reg_baja)
+
+pred_rocr <- prediction(predictions = preds_reg_baja, labels = y_pr) 
+perf <- performance(pred_rocr, measure = "prec", x.measure = "rec") 
+graf_roc_1 <- data_frame(sensibilidad = perf@x.values[[1]], precision = perf@y.values[[1]], d = perf@alpha.values[[1]])
+perf_1 <- perf
+roc1 <- ggplot(graf_roc_1, aes(x = sensibilidad, y = precision, colour=d))
+ roc1 + geom_point() + geom_line() + ylim(c(0.25,1.2)) + xlim(c(-0.1, 1.2))
 ```
+
+La gráfica precisión-recall muestra el trade-off ocasionado por bajar el nivel de probabilidad d , a partir del cual se clasifica como reseña positiva (clase 1). Para una d más baja se clasifican positivamente más observaciones , por lo que la sensibilidad aumenta pero la precisión baja ( hay más falsos positivos, pero mas verdaderos positivos clasificados correctamente). Reciprocamente, para valores d altos menos vp son clasificados positivos, como es más dificil clasificar como positivo , la precisión aumenta.
+
 
 2. Calcula la devianza de prueba y curva de precisión recall para un modelo
 con regularización apropiada
 
 ```{r}
-# preds_reg <- predict(cv_mod ## rellena parámetros)
-# tu código aquí:
+ preds_reg <- predict(cv_mod, newx = x_pr, type = 'response', s="lambda.1se" )
+devianza(y_pr, preds_reg)
+pred_rocr <- prediction(predictions = preds_reg, labels = y_pr) 
+perf <- performance(pred_rocr, measure = "prec", x.measure = "rec") 
+perf_2 <- perf
+graf_roc_2 <- data_frame(sensibilidad = perf@x.values[[1]], precision = perf@y.values[[1]], d = perf@alpha.values[[1]])
+ggplot()+ geom_point(data=graf_roc_2, mapping=aes(x = sensibilidad, y = precision, colour=d)) + geom_point(data = graf_roc_1, mapping = aes(x = sensibilidad, y = precision, colour=d), colour='red')+geom_line() + ylim(c(0.25,1.2)) + xlim(c(-0.1, 1.2))
 ```
 
 3. Grafica juntas las curvas de precisión recall. ¿Algún modelo domina a otro?
+Parece que el segundo modelo domina ligeramente
 
 ```{r}
 plot(perf_1)
@@ -154,8 +184,15 @@ coef_tbl <- tibble(palabra = rownames(coeficientes_reg),
                    reg_baja = coeficientes_reg_baja[,1],
                    reg      = coeficientes_reg[,1] )
 ## aquí tu código:
+max(abs(coef_tbl$reg_baja))
+max(coef_tbl$reg_baja)
+min(coef_tbl$reg_baja)
+print('Modelo regularizado')
+max(abs(coef_tbl$reg))
+max(coef_tbl$reg)
+min(coef_tbl$reg)
 ```
-
+El modelo con menos regularización tiene coeficientes mas grandes en valor absolutos , pues tiene una restricción más relajada para su optimización
 
 
 5. Calcula qué porcentaje de las predicciones tienen probabilidad menor
@@ -166,7 +203,7 @@ devianza sea tan grande para el modelo
 no regularizado comparado con el regularizado.
 
 ```{r}
-table(preds_reg_baja < 0.01)
+table(preds_reg_baja < 0.02)
 table(preds_reg < 0.01)
 prop.table(table(preds_reg_baja < 0.02, y_pr), 1)
 prop.table(table(preds_reg < 0.02, y_pr), 1)
